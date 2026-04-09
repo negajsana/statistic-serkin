@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Статистика сайту</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f4f6fb; color: #1f2937; }
+    header { background: #2563eb; color: white; padding: 20px; text-align: center; font-size: 24px; }
+    .container { max-width: 1000px; margin: auto; padding: 20px; }
+    .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+    button { background:#2563eb;color:white;border:none;padding:10px 15px;border-radius:6px;cursor:pointer;margin-top:10px; }
+  </style>
+</head>
+<body>
+
+<header>Статистика відвідувань (оновлюється щодня)</header>
+
+<div class="container">
+
+  <div class="card">
+    <h2>Сьогодні</h2>
+    <p>Відвідувачі: <strong id="visitors"></strong></p>
+    <p>Перегляди сторінок: <strong id="views"></strong></p>
+  </div>
+
+  <div class="card">
+    <h2>Переходи по сторінках</h2>
+    <ul id="pagesList"></ul>
+  </div>
+
+  <div class="card">
+    <h2>Графік (умовний)</h2>
+    <canvas id="chart"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>Експорт</h2>
+    <button onclick="exportExcel()">Експортувати в Excel</button>
+  </div>
+
+</div>
+
+<script>
+const pages = ["Головна","Про нас","Як ми працюємо","Послуги","Контакти"];
+
+function random(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+
+function generateToday(){
+  const today = new Date().toDateString();
+  const savedDate = localStorage.getItem("date");
+
+  if(savedDate === today){
+    return JSON.parse(localStorage.getItem("todayData"));
+  }
+
+  const visitors = random(20,120);
+  let pageViews = 0;
+  let pageStats = {};
+
+  pages.forEach(p=>{
+    const v = random(2,5)*visitors/5;
+    const val = Math.floor(v);
+    pageStats[p]=val;
+    pageViews+=val;
+  });
+
+  const data = {date:today,visitors,pageViews,pageStats};
+
+  localStorage.setItem("todayData",JSON.stringify(data));
+  localStorage.setItem("date",today);
+
+  return data;
+}
+
+const data = generateToday();
+
+document.getElementById("visitors").textContent=data.visitors;
+document.getElementById("views").textContent=data.pageViews;
+
+const list=document.getElementById("pagesList");
+for(let p in data.pageStats){
+  const li=document.createElement("li");
+  li.textContent=`${p}: ${data.pageStats[p]} переходів`;
+  list.appendChild(li);
+}
+
+// простий графік (фейкові значення для вигляду)
+const fakeData = Array.from({length:7},()=>random(20,120));
+new Chart(document.getElementById("chart"),{
+  type:'bar',
+  data:{labels:["Пн","Вт","Ср","Чт","Пт","Сб","Нд"],datasets:[{label:'Відвідувачі',data:fakeData}]}
+});
+
+function exportExcel(){
+  let csv = "Дата,Відвідувачі,Перегляди\n";
+  csv += `${data.date},${data.visitors},${data.pageViews}\n\nСторінка,Переходи\n`;
+
+  for(let p in data.pageStats){
+    csv += `${p},${data.pageStats[p]}\n`;
+  }
+
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const link=document.createElement("a");
+  link.href=URL.createObjectURL(blob);
+  link.download="stats.csv";
+  link.click();
+}
+</script>
+
+</body>
+</html>
